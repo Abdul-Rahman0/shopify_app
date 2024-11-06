@@ -73,3 +73,4 @@ end
 gem 'shopify_app'
 gem 'shopify_api'
 gem 'sidekiq'
+gem 'dotenv-rails'
