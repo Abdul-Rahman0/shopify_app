@@ -12,4 +12,9 @@ class HomeController < ApplicationController
       @host = params[:host]
     end
   end
+
+  def select_store
+    @other_stores = Shop.where.not(shopify_domain: current_shopify_domain)
+    render json: { stores: @other_stores.pluck(:shopify_domain) }
+  end
 end

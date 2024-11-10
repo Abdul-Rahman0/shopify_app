@@ -6,64 +6,77 @@
     <link
       rel="stylesheet"
       href="https://unpkg.com/@shopify/polaris@4.25.0/styles.min.css"
-      />
+    />
     
-      <script type="module">
-        async function displayProducts() {
-          var SessionToken = window["app-bridge"].actions.SessionToken
-          var app = window.app;
+    <script type="module">
+      async function fetchStores() {
+        const response = await fetch("/select_store");
+        const data = await response.json();
+        const storeSelect = document.getElementById("storeSelect");
 
-          app.dispatch(
-            SessionToken.request(),
-          );
-          // Save a session token for future requests
-          window.sessionToken = await new Promise((resolve) => {
-            app.subscribe(SessionToken.Action.RESPOND, (data) => {
-              resolve(data.sessionToken || "");
+        data.stores.forEach((store) => {
+          let option = document.createElement("option");
+          option.value = store;
+          option.text = store;
+          storeSelect.appendChild(option);
+        });
+      }
+
+      async function displayProducts() {
+        var SessionToken = window["app-bridge"].actions.SessionToken;
+        var app = window.app;
+
+        app.dispatch(SessionToken.request());
+        window.sessionToken = await new Promise((resolve) => {
+          app.subscribe(SessionToken.Action.RESPOND, (data) => {
+            resolve(data.sessionToken || "");
+          });
+        });
+
+        var headers = new Headers({
+          "Content-Type": "application/json",
+          Authorization: "Bearer " + window.sessionToken,
+        });
+        fetch("/products", { headers })
+          .then((response) => response.json())
+          .then((data) => {
+            const productList = document.getElementById("productList");
+            data.products.forEach((product) => {
+              let item = document.createElement("li");
+              item.innerHTML = `${product.title} - <button onclick="transferProduct(${product.id})">Transfer</button>`;
+              productList.appendChild(item);
             });
           });
+      }
 
-          var fetchProducts = function() {
-            var headers = new Headers({ "Content-Type": "text/javascript", "Authorization": "Bearer " + window.sessionToken });
-            return fetch("/products", { headers })
-              .then(response => response.json())
-              .then(data => {
-                var products = data.products;
+      async function transferProduct(productId) {
+        const targetStore = document.getElementById("storeSelect").value;
+        const headers = new Headers({
+          "Content-Type": "application/json",
+          Authorization: "Bearer " + window.sessionToken,
+        });
+        fetch("/products/transfer", {
+          method: "POST",
+          headers,
+          body: JSON.stringify({ product_id: productId, target_store: targetStore }),
+        }).then((response) => {
+          if (response.ok) {
+            alert("Product transfer initiated.");
+          }
+        });
+      }
 
-                if (products === undefined || products.length == 0) {
-                  document.getElementById("products").innerHTML = "<br>No products to display.";
-                } else {
-                  var list = "";
-                  products.forEach((product) => {
-                    var link = `<a target="_top" href="https://<%= @shop_origin %>/admin/products/${product.id}">`
-                    list += "<li>" + link + product.title + "</a></li>";
-                  });
-                  document.getElementById("products").innerHTML = "<ul>" + list + "</ul>";
-                }
-              });
-          }();
-        };
-
-        
-          import "lib/shopify_app"
-          displayProducts();
-        
-      </script>
-    
+      fetchStores();
+      displayProducts();
+    </script>
   </head>
   <body>
-    <h2>Products</h2>
-    <div id="products"><br>Loading...</div>
-    <h2>Webhooks</h2>
+    <h2>Select Store to Transfer</h2>
+    <select id="storeSelect">
+      <option value="">Select a store</option>
+    </select>
 
-    <% if @webhooks.present? %>
-    <ul>
-      <% @webhooks.each do |webhook| %>
-      <li><%= webhook.topic %> : <%= webhook.address %></li>
-      <% end %>
-    </ul>
-    <% else %>
-    <p>This app has not created any webhooks for this Shop. Add webhooks to your ShopifyApp initializer if you need webhooks</p>
-    <% end %>
+    <h2>Products</h2>
+    <ul id="productList">Loading...</ul>
   </body>
 </html>

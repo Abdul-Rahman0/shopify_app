@@ -1,9 +1,9 @@
 Rails.application.routes.draw do
-  root :to => 'home#index'
-  get '/products', :to => 'products#index'
-  mount ShopifyApp::Engine, at: '/'
-  # Define your application routes per the DSL in https://guides.rubyonrails.org/routing.html
+  root 'home#index'
 
-  # Defines the root path route ("/")
-  # root "articles#index"
+  get '/products', to: 'products#index'
+  post '/products/transfer', to: 'products#transfer'
+  get '/select_store', to: 'home#select_store'
+
+  mount ShopifyApp::Engine, at: '/'
 end
