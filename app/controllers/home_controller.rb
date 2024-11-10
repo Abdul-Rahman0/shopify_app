@@ -10,11 +10,24 @@ class HomeController < ApplicationController
     else
       @shop_origin = current_shopify_domain
       @host = params[:host]
+
+      # Get other stores and current store products
+      @other_stores = Shop.where.not(shopify_domain: @shop_origin)
+      @products = ShopifyAPI::Product.all(limit: 10) # Adjust the limit as needed
     end
   end
 
-  def select_store
-    @other_stores = Shop.where.not(shopify_domain: current_shopify_domain)
-    render json: { stores: @other_stores.pluck(:shopify_domain) }
-  end
+  def transfer
+    product_ids = params[:product_ids]
+    target_store = params[:target_store]
+  
+    if product_ids.is_a?(Array)
+      TransferProductJob.perform_later(product_ids, target_store, current_shopify_domain)
+    else
+      # If only a single product_id is provided, still pass it as an array
+      TransferProductJob.perform_later([product_ids], target_store, current_shopify_domain)
+    end
+  
+    redirect_to root_path, notice: "Product transfer initiated."
+  end  
 end

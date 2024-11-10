@@ -1,9 +1,7 @@
 Rails.application.routes.draw do
   root 'home#index'
 
-  get '/products', to: 'products#index'
-  post '/products/transfer', to: 'products#transfer'
-  get '/select_store', to: 'home#select_store'
+  post '/transfer_product', to: 'home#transfer', as: 'transfer_product'
 
   mount ShopifyApp::Engine, at: '/'
 end

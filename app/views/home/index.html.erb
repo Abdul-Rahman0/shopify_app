@@ -3,80 +3,28 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <link
-      rel="stylesheet"
-      href="https://unpkg.com/@shopify/polaris@4.25.0/styles.min.css"
-    />
-    
-    <script type="module">
-      async function fetchStores() {
-        const response = await fetch("/select_store");
-        const data = await response.json();
-        const storeSelect = document.getElementById("storeSelect");
-
-        data.stores.forEach((store) => {
-          let option = document.createElement("option");
-          option.value = store;
-          option.text = store;
-          storeSelect.appendChild(option);
-        });
-      }
-
-      async function displayProducts() {
-        var SessionToken = window["app-bridge"].actions.SessionToken;
-        var app = window.app;
-
-        app.dispatch(SessionToken.request());
-        window.sessionToken = await new Promise((resolve) => {
-          app.subscribe(SessionToken.Action.RESPOND, (data) => {
-            resolve(data.sessionToken || "");
-          });
-        });
-
-        var headers = new Headers({
-          "Content-Type": "application/json",
-          Authorization: "Bearer " + window.sessionToken,
-        });
-        fetch("/products", { headers })
-          .then((response) => response.json())
-          .then((data) => {
-            const productList = document.getElementById("productList");
-            data.products.forEach((product) => {
-              let item = document.createElement("li");
-              item.innerHTML = `${product.title} - <button onclick="transferProduct(${product.id})">Transfer</button>`;
-              productList.appendChild(item);
-            });
-          });
-      }
-
-      async function transferProduct(productId) {
-        const targetStore = document.getElementById("storeSelect").value;
-        const headers = new Headers({
-          "Content-Type": "application/json",
-          Authorization: "Bearer " + window.sessionToken,
-        });
-        fetch("/products/transfer", {
-          method: "POST",
-          headers,
-          body: JSON.stringify({ product_id: productId, target_store: targetStore }),
-        }).then((response) => {
-          if (response.ok) {
-            alert("Product transfer initiated.");
-          }
-        });
-      }
-
-      fetchStores();
-      displayProducts();
-    </script>
+    <link rel="stylesheet" href="https://unpkg.com/@shopify/polaris@4.25.0/styles.min.css" />
+    <title>Store Transfer</title>
   </head>
   <body>
     <h2>Select Store to Transfer</h2>
-    <select id="storeSelect">
-      <option value="">Select a store</option>
-    </select>
-
-    <h2>Products</h2>
-    <ul id="productList">Loading...</ul>
+    <%= form_with url: transfer_product_path, method: :post, local: true do |f| %>
+      <label for="storeSelect">Choose Target Store:</label>
+      <select id="storeSelect" name="target_store">
+        <% @other_stores.each do |store| %>
+          <option value="<%= store.shopify_domain %>"><%= store.shopify_domain %></option>
+        <% end %>
+      </select>
+      <h2>Products in Current Store</h2>
+      <ul>
+        <% @products.each do |product| %>
+          <li>
+            <input type="checkbox" id="product-<%= product.id %>" name="product_ids[]" value="<%= product.id %>">
+            <label for="product-<%= product.id %>"><%= product.title %></label>
+          </li>
+        <% end %>
+      </ul>
+      <%= f.submit "Transfer Selected Products" %>
+    <% end %>
   </body>
 </html>
