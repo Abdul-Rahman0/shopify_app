@@ -26,5 +26,31 @@
       </ul>
       <%= f.submit "Transfer Selected Products" %>
     <% end %>
+    <script src="https://unpkg.com/@shopify/app-bridge@latest/umd/index.js"></script>
+    <script>
+      document.addEventListener("DOMContentLoaded", async () => {
+        const apiKey = "<%= ENV['SHOPIFY_API_KEY'] %>";
+        const shopOrigin = "<%= @shop_origin %>";
+
+        var createApp = window["app-bridge"].default;
+        var actions = window["app-bridge"].actions;
+        var SessionToken = actions.SessionToken;
+
+        var app = createApp({
+          apiKey: apiKey,
+          shopOrigin: shopOrigin,
+          forceRedirect: true
+        });
+
+        // Request and save a session token for future requests
+        app.dispatch(SessionToken.request());
+        
+        window.sessionToken = await new Promise((resolve) => {
+          app.subscribe(SessionToken.Action.RESPOND, (data) => {
+            resolve(data.sessionToken || "");
+          });
+        });
+      });
+    </script>
   </body>
 </html>
